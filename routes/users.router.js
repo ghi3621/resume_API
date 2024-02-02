@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 // import authMiddleware from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
+const tokenStorages = {};
 
 /**회원가입 API **/
 //1. 이멜, 비번, 비번확인, 이름 회원가입을 요청
@@ -78,6 +79,7 @@ router.post("/sign-up", async (req, res, next) => {
 router.post("/sign-in", async (req, res, next) => {
   try {
     const { email, pwd } = req.body;
+
     const user = await prisma.users.findFirst({ where: { email } });
 
     if (!user)
@@ -93,19 +95,21 @@ router.post("/sign-in", async (req, res, next) => {
       {
         userId: user.userId,
       },
-      process.env.ACCESS_SECRET_KEY,
+      process.env.ACCESS_TOKEN_SECRET_KEY,
       { expiresIn: "12h" },
     );
 
     const refreshToken = jwt.sign(
-      {
-        userId: user.userId,
-        ip: req.ip,
-        userAgent: req.headers["user-agent"],
-      },
-      process.env.REFRESH_SECRET_KEY,
+      { userId: user.userId },
+      process.env.REFRESH_TOKEN_SECRET_KEY,
       { expiresIn: "7d" },
     );
+
+    tokenStorages[refreshToken] = {
+      userId: user.userId,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+    };
 
     res.cookie("accessToken", accessToken, { httpOnly: true });
     res.cookie("refreshToken", refreshToken, { httpOnly: true });
@@ -115,6 +119,64 @@ router.post("/sign-in", async (req, res, next) => {
     next(err);
   }
 });
+
+/** 엑세스 토큰 검증 API **/
+router.get("/users", async (req, res) => {
+  try {
+    const { accessToken } = req.cookies;
+
+    /** 엑세스 토큰이 존재하는지 확인한다. **/
+    if (!accessToken) {
+      return res
+        .status(400)
+        .json({ errorMessage: "Access Token이 존재하지 않습니다." });
+    }
+
+    const { userId } = jwt.verify(
+      accessToken,
+      process.env.ACCESS_TOKEN_SECRET_KEY,
+    );
+
+    const user = await prisma.users.findUnique({
+      where: {
+        userId: +userId,
+      },
+    });
+
+    if (!user) {
+      res.clearCookie("accessToken");
+
+      return res
+        .status(402)
+        .json({ errorMessage: "사용자를 찾을 수 없습니다. 확인해주세요!!" });
+    }
+
+    return res.status(200).json({
+      message: `${userId}의 Access Token 인증 성공 (^o^)`,
+    });
+  } catch (err) {
+    res.clearCookie("accessToken");
+    next(err);
+    return res
+      .status(401)
+      .json({ errorMessage: "Access Token이 정상적이지 않습니다." });
+  }
+});
+function jwt.verify(token, secretKey) {
+  try {
+    return jwt.verify(token, secretKey); // 인증에 성공 했을 때 payload가 반환이 되고 샐패했을땐 에러뜸.
+  } catch (err) {
+    return null;
+  }
+}
+
+function createAccessToken(id) {
+  return jwt.sign({ id }, ACCESS_TOKEN_SECRET_KEY, { expiresIn: "10s" });
+}
+
+
+
+
 
 /** 사용자 조회 API **/
 // router.get("/users", authMiddleware, async (req, res, next) => {

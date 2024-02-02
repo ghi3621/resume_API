@@ -1,13 +1,12 @@
 // app.js
 
 import express from "express";
-import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import UsersRouter from "./routes/users.router.js";
 import ResumesRouter from "./routes/resumes.router.js";
 import LogMiddleware from "./middlewares/log.middleware.js";
 import ErrorHandlingMiddleware from "./middlewares/error-handling.middleware.js";
-
+// import VerifyRouter from "."
 const app = express();
 const PORT = 3018;
 
