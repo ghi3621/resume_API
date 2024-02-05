@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "../prisma/index.js";
-// import authMiddleware from "../middlewares/auth.middleware.js";
+import jwt from "jsonwebtoken";
+import authMiddleware from "../middlewares/auth.middleware.js";
 
 const router = express.Router(); // express.Router()를 이용해 라우터를 생성합니다.
 
@@ -9,17 +10,24 @@ const router = express.Router(); // express.Router()를 이용해 라우터를 �
 //2. 이력서 데이터의 상태 APPLY, DROP, PASS, INTERVIEW1, INTERVIEW2, FINAL_PASS
 //3. 이력서 등록 시 기본 상태는 APPLY (지원 완료)
 
-router.post("/resumes", async (req, res, next) => {
+router.post("/resumes", authMiddleware, async (req, res, next) => {
   try {
+    const user = res.locals.user;
     const { title, intro } = req.body;
+    if (!title || !intro) {
+      return res
+        .status(400)
+        .json({ errorMessage: "필수사항을 모두 작성해주세요!!" });
+    }
 
-    const resume = await prisma.resumes.create({
+    await prisma.resumes.create({
       data: {
         title: title,
         intro: intro,
+        userId: user.userId,
       },
     });
-    return res.status(201).json({ data: resume });
+    return res.status(201).json({});
   } catch (err) {
     next(err);
   }
@@ -33,16 +41,39 @@ router.post("/resumes", async (req, res, next) => {
 // ASC는 과거순, DESC는 최신순 그리고 둘 다 해당하지 않거나 값이 없는 경우에는 최신순으로 정렬함.
 router.get("/resumes", async (req, res, next) => {
   const { orderKey, orderValue } = req.query;
+  // const orderKey = req.query.orderKey ?? "resumeId";
+  // const orderValue = req.query.orderValue ?? "desc";
+
+  if (!["resumeId", "status"].includes(orderKey)) {
+    return res
+      .status(400)
+      .json({ errorMessage: "Order Key가 올바르지 않습니다. 확인해주세요!!" });
+  }
+
+  if (!["asc", "desc"].includes(orderValue.toLowerCase())) {
+    return res.status(400).json({
+      errorMessage: "Order Value가 올바르지 않습니다. 확인해주세요!!",
+    });
+  }
+
   const resumes = await prisma.resumes.findMany({
     select: {
       resumeId: true,
       title: true,
       intro: true,
-      author: true,
-      status: true,
+      userInfos: {
+        select: {
+          name: true,
+        },
+      },
       createdAt: true,
       updatedAt: true,
     },
+    orderBy: [
+      {
+        [orderKey]: orderValue.toLowerCase(),
+      },
+    ],
   });
 
   return res.status(200).json({ data: resumes });
@@ -50,26 +81,37 @@ router.get("/resumes", async (req, res, next) => {
 
 // 이력서 상세 조회
 //1. 이력서 ID, 이력서 제목, 자기소개, 작성자명, 이력서 상태, 작성 날짜 조회하기 (단건)
-// 작성자명을 표시하기 위해서는 상품 테이블과 사용자 테이블의 JOIN이 필요
+// 작성자명을 표시하기 위해서는 이력서 테이블과 사용자 테이블의 JOIN이 필요
 router.get("/resumes/:resumeId", async (req, res, next) => {
   const { resumeId } = req.params;
+  if (!resumeId) {
+    return res
+      .status(400)
+      .json({ errorMessage: "이력서 Id는 필수 값 입니다. 확인해주세요!!" });
+  }
 
-  const resume = await prisma.posts.findFirst({
+  const resume = await prisma.resumes.findFirst({
     where: {
-      resumeId: +resumeId, //schema.prisma를 보면 우리가 postId에 int 타입으로 해놓음.
-      /// parseInt 대신 +를 붙이면 (+postId) 문자열을 숫자형태로 해줌.
+      resumeId: +resumeId,
     },
     select: {
       resumeId: true,
       title: true,
       intro: true,
-      author: true,
       status: true,
+      userInfos: {
+        select: {
+          name: true,
+        },
+      },
       createdAt: true,
       updatedAt: true,
     },
   });
 
+  if (!resume) {
+    return res.json({ data: {} });
+  }
   return res.status(200).json({ data: resume });
 });
 
