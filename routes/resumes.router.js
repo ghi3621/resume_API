@@ -13,10 +13,10 @@ const router = express.Router(); // express.Router()를 이용해 라우터를 �
 // ASC는 과거순, DESC는 최신순 그리고 둘 다 해당하지 않거나 값이 없는 경우에는 최신순으로 정렬함.
 router.get("/resumes", async (req, res, next) => {
   try {
-    const { orderKey, orderValue } = req.query;
+    //const { orderKey, orderValue } = req.query;
 
-    // const orderKey = req.query.orderKey ?? "resumeId";
-    // const orderValue = req.query.orderValue ?? "desc";
+    const orderKey = req.query.orderKey ?? "resumeId";
+    const orderValue = req.query.orderValue ?? "desc";
 
     if (!["resumeId", "status"].includes(orderKey)) {
       return res.status(400).json({
@@ -35,8 +35,8 @@ router.get("/resumes", async (req, res, next) => {
         resumeId: true,
         title: true,
         intro: true,
-        author: true,
         status: true,
+        author: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -73,8 +73,8 @@ router.get("/resumes/:resumeId", async (req, res, next) => {
         resumeId: true,
         title: true,
         intro: true,
-        author: true,
         status: true,
+        author: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -97,22 +97,35 @@ router.get("/resumes/:resumeId", async (req, res, next) => {
 router.post("/resumes", authMiddleware, async (req, res, next) => {
   try {
     const user = res.locals.user;
-    const { title, intro, author } = req.body;
-    if (!title || !intro || !author) {
+    const { title, intro, name } = req.body;
+    if (!title || !intro || !name) {
       return res
         .status(400)
         .json({ errorMessage: "필수사항을 모두 작성해주세요!!" });
     }
+    const userInfo = await prisma.userInfos.findFirst({
+      where: {
+        name,
+      },
+    });
 
+    if (!userInfo) {
+      return res.status(400).json({
+        errorMessage: "등록된 사용자 정보와 일치하지 않습니다. 확인해주세요!!",
+      });
+    }
     await prisma.resumes.create({
       data: {
         title: title,
         intro: intro,
+        status: "APPLY",
         userId: user.userId,
-        author: author,
+        author: userInfo.name,
       },
     });
-    return res.status(201).end();
+    return res
+      .status(200)
+      .json({ message: "지원 완료. 합격을 기원합니다 (^o^) " });
   } catch (err) {
     next(err);
   }
@@ -177,7 +190,7 @@ router.patch("/resumes/:resumeId", authMiddleware, async (req, res, next) => {
       },
     });
 
-    return res.status(200).json({ data: "이력서가 수정되었습니다." });
+    return res.status(200).json({ message: "이력서가 수정되었습니다. (^o^)" });
   } catch (err) {
     next(err);
   }
@@ -212,7 +225,7 @@ router.delete("/resumes/:resumeId", authMiddleware, async (req, res, next) => {
     }
     await prisma.resumes.delete({ where: { resumeId: +resumeId } });
 
-    return res.status(200).json({ data: "게시글이 삭제되었습니다." });
+    return res.status(200).json({ message: "이력서가 삭제되었습니다. (^o^)" });
   } catch (err) {
     next(err);
   }
