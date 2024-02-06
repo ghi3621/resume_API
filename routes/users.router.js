@@ -129,12 +129,8 @@ router.get("/me", authMiddleware, async (req, res, next) => {
     select: {
       userId: true,
       email: true,
-      userInfos: {
-        select: {
-          name: true,
-          age: true,
-        },
-      },
+      name: true,
+      age: true,
       createdAt: true,
       updatedAt: true,
     },

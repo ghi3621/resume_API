@@ -15,42 +15,41 @@ datasource db {
 model Users {
     userId    Int      @id @default(autoincrement()) @map("userId")
     email     String   @unique @map("email")
+    name      String   @map("name")
+    age       Int?     @map("age")
     password  String   @map("password")
     createdAt DateTime @default(now()) @map("createdAt")
     updatedAt DateTime @updatedAt @map("updatedAt")
 
-    userInfos UserInfos?
-    resumes   Resumes[]
+    // userInfos UserInfos?
+    resumes Resumes[]
 
     @@map("Users")
 }
 
-model UserInfos {
-    userInfoId Int      @id @default(autoincrement()) @map("userInfoId")
-    userId     Int      @unique @map("userId")
-    name       String   @map("name")
-    age        Int?     @map("age")
-    createdAt  DateTime @default(now()) @map("createdAt")
-    updatedAt  DateTime @updatedAt @map("updatedAt")
+// model UserInfos {
+//     userInfoId Int      @id @default(autoincrement()) @map("userInfoId")
+//     userId     Int      @unique @map("userId")
+//     age        Int?     @map("age")
+//     createdAt  DateTime @default(now()) @map("createdAt")
+//     updatedAt  DateTime @updatedAt @map("updatedAt")
 
-    user    Users     @relation(fields: [userId], references: [userId], onDelete: Cascade)
-    resumes Resumes[]
+//     user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
-    @@map("UserInfos")
-}
+//     @@map("UserInfos")
+// }
 
 model Resumes {
-    resumeId   Int      @id @default(autoincrement()) @map("resumeId")
-    userId     Int      @map("userId")
-    userInfoId Int      @map("userInfoId")
-    title      String   @map("title")
-    intro      String   @map("intro") @db.Text
-    status     Status   @default(APPLY) @map("status")
-    createdAt  DateTime @default(now()) @map("createdAt")
-    updatedAt  DateTime @updatedAt @map("updatedAt")
+    resumeId  Int      @id @default(autoincrement()) @map("resumeId")
+    userId    Int      @map("userId")
+    // userInfoId Int      @map("userInfoId")
+    title     String   @map("title")
+    intro     String   @map("intro") @db.Text
+    status    Status   @default(APPLY) @map("status")
+    createdAt DateTime @default(now()) @map("createdAt")
+    updatedAt DateTime @updatedAt @map("updatedAt")
 
-    user     Users     @relation(fields: [userId], references: [userId], onDelete: Cascade)
-    userInfo UserInfos @relation(fields: [userInfoId], references: [userInfoId], onDelete: Cascade)
+    user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
     @@map("Resumes")
 }
