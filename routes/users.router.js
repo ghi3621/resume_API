@@ -15,7 +15,7 @@ const router = express.Router();
 //3. 회원가입 성공시, 비밀번호를 제외 한 사용자의 정보를 반환.
 router.post("/sign-up", async (req, res, next) => {
   try {
-    const { email, pwd, checkedPwd, name, age } = req.body;
+    const { email, pwd, checkedPwd, name } = req.body;
 
     if (!email || !pwd || !checkedPwd || !name) {
       return res
@@ -59,7 +59,6 @@ router.post("/sign-up", async (req, res, next) => {
       data: {
         userId: user.userId,
         name,
-        age,
       },
     });
 
@@ -129,8 +128,12 @@ router.get("/me", authMiddleware, async (req, res, next) => {
     select: {
       userId: true,
       email: true,
-      name: true,
-      age: true,
+      userInfos: {
+        select: {
+          name: true,
+          age: true,
+        },
+      },
       createdAt: true,
       updatedAt: true,
     },

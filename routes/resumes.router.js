@@ -13,7 +13,7 @@ const router = express.Router(); // express.Router()를 이용해 라우터를 �
 // ASC는 과거순, DESC는 최신순 그리고 둘 다 해당하지 않거나 값이 없는 경우에는 최신순으로 정렬함.
 router.get("/resumes", async (req, res, next) => {
   const { orderKey, orderValue } = req.query;
-  c;
+
   // const orderKey = req.query.orderKey ?? "resumeId";
   // const orderValue = req.query.orderValue ?? "desc";
 
@@ -34,11 +34,8 @@ router.get("/resumes", async (req, res, next) => {
       resumeId: true,
       title: true,
       intro: true,
-      users: {
-        select: {
-          name: true,
-        },
-      },
+      author: true,
+      status: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -71,12 +68,8 @@ router.get("/resumes/:resumeId", async (req, res, next) => {
       resumeId: true,
       title: true,
       intro: true,
+      author: true,
       status: true,
-      users: {
-        select: {
-          name: true,
-        },
-      },
       createdAt: true,
       updatedAt: true,
     },
@@ -96,8 +89,8 @@ router.get("/resumes/:resumeId", async (req, res, next) => {
 router.post("/resumes", authMiddleware, async (req, res, next) => {
   try {
     const user = res.locals.user;
-    const { title, intro } = req.body;
-    if (!title || !intro) {
+    const { title, intro, author } = req.body;
+    if (!title || !intro || !author) {
       return res
         .status(400)
         .json({ errorMessage: "필수사항을 모두 작성해주세요!!" });
@@ -108,6 +101,7 @@ router.post("/resumes", authMiddleware, async (req, res, next) => {
         title: title,
         intro: intro,
         userId: user.userId,
+        author: author,
       },
     });
     return res.status(201).end();
@@ -131,6 +125,7 @@ router.patch("/resumes/:resumeId", authMiddleware, async (req, res, next) => {
       .json({ errorMessage: "필수사항을 모두 작성해주세요!!" });
   }
 
+  //schema.prisma에 enum 지정 해놨는데..음ㅁㅁ
   if (
     ![
       "APPLY",
