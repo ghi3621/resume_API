@@ -121,30 +121,34 @@ router.post("/sign-in", async (req, res, next) => {
 
 /** 내 정보조회 API **/
 router.get("/me", authMiddleware, async (req, res, next) => {
-  const { userId } = res.locals.user;
+  try {
+    const { userId } = res.locals.user;
 
-  const user = await prisma.users.findFirst({
-    where: { userId: +userId },
-    select: {
-      userId: true,
-      email: true,
-      userInfos: {
-        select: {
-          name: true,
-          age: true,
+    const user = await prisma.users.findFirst({
+      where: { userId: +userId },
+      select: {
+        userId: true,
+        email: true,
+        userInfos: {
+          select: {
+            name: true,
+            age: true,
+          },
         },
+        createdAt: true,
+        updatedAt: true,
       },
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+    });
 
-  // user.foreach(users => {
-  //   users.name = users.userInfos.name;
-  //   users.age = users.userInfos.age;
-  //   delete users.userInfos;
-  // });
-  return res.status(200).json({ data: user });
+    // user.foreach(users => {
+    //   users.name = users.userInfos.name;
+    //   users.age = users.userInfos.age;
+    //   delete users.userInfos;
+    // });
+    return res.status(200).json({ data: user });
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

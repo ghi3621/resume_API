@@ -42,16 +42,16 @@ export default async function(req, res, next) {
       success: false,
       message: error.message,
     });
-    //토큰이 만료되었거나, 조작되었을 때, 에러 메시지를 다르게 출력합니다.
-    // switch (error.name) {
-    //   case "TokenExpiredError":
-    //     return res.status(401).json({ message: "토큰이 만료되었습니다." });
-    //   case "JsonWebTokenError":
-    //     return res.status(401).json({ message: "토큰이 조작되었습니다." });
-    //   default:
-    //     return res
-    //       .status(401)
-    //       .json({ message: error.message ?? "비정상적인 요청입니다." });
-    // }
+    토큰이 만료되었거나, 조작되었을 때, 에러 메시지를 다르게 출력합니다.
+    switch (error.name) {
+      case "TokenExpiredError":
+        return res.status(401).json({ message: "토큰이 만료되었습니다." });
+      case "JsonWebTokenError":
+        return res.status(401).json({ message: "토큰이 조작되었습니다." });
+      default:
+        return res
+          .status(401)
+          .json({ message: error.message ?? "비정상적인 요청입니다." });
+    }
   }
 }
